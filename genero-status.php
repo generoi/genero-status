@@ -23,9 +23,9 @@
  * - Drupal 6, 7
  * - Wordpress 3.4 (at least)
  */
-header('Content-type: text/xml');
+header('Content-Type: application/xml; charset=utf-8');
 
-define('GENERO_STATUS_VERSION', '0.0.7');
+define('GENERO_STATUS_VERSION', '0.0.8');
 define('GENERO_DEBUG', FALSE);
 define('GENERO_KEY', 'fAme9hS3Kduggk3F');
 define('GENERO_DRUPAL', 'Drupal');
@@ -113,6 +113,8 @@ switch (genero_get_platform()) {
     $data = genero_gather_drupal_data();
     break;
   case GENERO_WORDPRESS:
+    // Disable caching.
+    define('WP_CACHE', FALSE);
     // Disable the regular bootstrap process, there's lots of exit calls which
     // we cant prevent.
     define('WP_INSTALLING', TRUE);
