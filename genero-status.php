@@ -25,7 +25,7 @@
  */
 header('Content-type: text/xml');
 
-define('GENERO_STATUS_VERSION', '0.0.6');
+define('GENERO_STATUS_VERSION', '0.0.7');
 define('GENERO_DEBUG', FALSE);
 define('GENERO_KEY', 'fAme9hS3Kduggk3F');
 define('GENERO_DRUPAL', 'Drupal');
