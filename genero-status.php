@@ -61,8 +61,14 @@ if (isset($wp_object_cache->is_redis_connected) && ! $wp_object_cache->is_redis_
 
 // Validate there's no "noindex" tag on the frontpage
 $content = file_get_contents(WP_HOME);
+if ($content === false) {
+  exitWithError('Frontpage cannot be reached');
+}
 if (preg_match('~<meta[^>]+robots[^>]+noindex~', $content) !== 0) {
   exitWithError('Meta robots has noindex');
+}
+if (preg_match('~<body~', $content) === false) {
+  exitWithError('Corrupt HTML');
 }
 
 // Validate there's no Disallow all in the robots.txt
