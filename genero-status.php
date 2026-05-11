@@ -59,8 +59,27 @@ if (isset($wp_object_cache->is_redis_connected) && ! $wp_object_cache->is_redis_
   exitWithError('Redis cant connect');
 }
 
+// Hit the local origin directly (bypass any CDN/edge in the path) while
+// preserving the public Host header so nginx vhost routing still resolves.
+$host = parse_url(WP_HOME, PHP_URL_HOST);
+$scheme = parse_url(WP_HOME, PHP_URL_SCHEME) ?: 'https';
+$loopback = "{$scheme}://127.0.0.1";
+$context = stream_context_create([
+  'http' => [
+    'timeout' => 5,
+    'header' => "Host: {$host}\r\nUser-Agent: genero-healthcheck\r\n",
+    'ignore_errors' => true,
+  ],
+  'ssl' => [
+    'verify_peer' => false,
+    'verify_peer_name' => false,
+    'peer_name' => $host,
+    'SNI_enabled' => true,
+  ],
+]);
+
 // Validate there's no "noindex" tag on the frontpage
-$content = file_get_contents(WP_HOME);
+$content = @file_get_contents("{$loopback}/", false, $context);
 if ($content === false) {
   exitWithError('Frontpage cannot be reached');
 }
@@ -72,7 +91,7 @@ if (preg_match('~<body~', $content) === false) {
 }
 
 // Validate there's no Disallow all in the robots.txt
-$content = file_get_contents(rtrim(WP_HOME, '/') . '/robots.txt');
+$content = @file_get_contents("{$loopback}/robots.txt", false, $context);
 if (preg_match('~Disallow:\h*/(?:\R|$)~i', $content) !== 0) {
   exitWithError('robots.txt disallow /');
 }
