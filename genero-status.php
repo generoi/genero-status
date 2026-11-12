@@ -90,10 +90,31 @@ if (preg_match('~<body~', $content) === false) {
   exitWithError('Corrupt HTML');
 }
 
-// Validate there's no Disallow all in the robots.txt
-$content = @file_get_contents("{$loopback}/robots.txt", false, $context);
-if (preg_match('~Disallow:\h*/(?:\R|$)~i', $content) !== 0) {
-  exitWithError('robots.txt disallow /');
+// Validate robots.txt doesn't disallow everything for all crawlers. A
+// "Disallow: /" for a named bot (e.g. Cloudflare's managed AI-crawler
+// block) is fine; only one in a "User-agent: *" group hides the site.
+$content = (string) @file_get_contents("{$loopback}/robots.txt", false, $context);
+$agents = [];
+$inRules = false;
+foreach (preg_split('~\R~', $content) as $line) {
+  $line = trim(preg_replace('~#.*~', '', $line));
+  if (! preg_match('~^([a-z-]+)\h*:\h*(.*)$~i', $line, $match)) {
+    continue;
+  }
+  $field = strtolower($match[1]);
+  if ($field === 'user-agent') {
+    // A User-agent after rules starts a new group.
+    if ($inRules) {
+      $agents = [];
+      $inRules = false;
+    }
+    $agents[] = trim($match[2]);
+    continue;
+  }
+  $inRules = true;
+  if ($field === 'disallow' && trim($match[2]) === '/' && in_array('*', $agents, true)) {
+    exitWithError('robots.txt disallow /');
+  }
 }
 
 // Everything passed.
